@@ -1,6 +1,8 @@
 // require("babel-core").transform("code", {});
 
 var readline = require('./node_readline');
+var evalAst = require('./eval_ast');
+var env = require('./repl_env');
 
 // read
 function READ(str) {
@@ -9,7 +11,7 @@ function READ(str) {
 
 // eval
 function EVAL(ast, env) {
-  return ast;
+  return evalAst(ast, env);
 }
 
 // print
@@ -18,7 +20,7 @@ function PRINT(exp) {
 }
 
 // repl
-var rep = function(str) { return PRINT(EVAL(READ(str), {})); };
+var rep = function(str) { return PRINT(EVAL(READ(str), env)); };
 
 // repl loop
 while (true) {
@@ -28,6 +30,6 @@ while (true) {
     if (line) { console.log(rep(line)); }
   } catch (exc) {
     if (exc.stack) { console.log(exc.stack); }
-    else           { if (exc !== 'no tokens') console.log(exc); }
+    else           { console.log(exc); }
   }
 }
