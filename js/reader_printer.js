@@ -99,7 +99,7 @@ function readAtom(token) {
     // value = token.slice(1, token.length-1); 
     value = token;
   }
-  else if (token.match(/\d+(\.\d+)?/)) {
+  else if (token.match(/^\d+(\.\d+)?$/)) {
     type = 'number';
     value = Number.parseFloat(token);
   }
@@ -137,6 +137,7 @@ var print = {
 };
 
 function printExp(exp) {
+  if (!print[exp.type]) return exp;
   return print[exp.type](exp);
 }
 

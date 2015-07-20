@@ -1,0 +1,72 @@
+var log = require('./debug').log;
+var inspect = require('./debug').inspect;
+
+var unboundSlice = Array.prototype.slice;
+var slice = Function.prototype.call.bind(unboundSlice);
+
+function boolean(v) {
+  v = v ? 'true' : 'false';
+  return { type: v, value: v };
+}
+
+module.exports =  {
+  '+' : function(args) { return { type: 'number',
+                                  value: args.reduce(function(p,n) { return p.value + n.value; }) };
+  },
+  '*' : function(args) { return { type: 'number',
+                                  value:args[0].value * args[1].value };
+                       },
+  '-' : function(args) { return { type: 'number',
+                                  value:args[0].value - args[1].value};
+                       },
+  '/' : function(args) { return { type: 'number',
+                                  value:args[0].value / args[1].value};
+                       },
+  list: function(args) {
+    return { type: 'seq', seqType: 'list', seq: args };
+  },
+  "list?": function(args) {
+    return boolean(args[0].seqType === 'list');
+  },
+  "empty?": function(args) {
+    return boolean(!args[0].seq.length);
+  },
+  "count": function(args) {
+    return  { type: 'number', value: args[0].type === 'nil' ? 0 : args[0].seq.length };
+  },
+  "=": function(args) {
+    // log('=');
+    // inspect(args);
+    if (args[0].type === 'seq' && args[1].type === 'seq') {
+      if (args[0].seq.length !== args[1].seq.length) return boolean(false);
+      else return boolean(args[0].seq.every(function(arg, i)  {
+        var arg2 = args[1].seq[i];
+        return module.exports['=']([arg, arg2]).type === 'true';
+      }));
+    }
+    else return boolean(args[0].type === args[1].type && args[0].value === args[1].value);
+  },
+  ">": function(args) {
+    return boolean(args[0].value > args[1].value);
+  },
+  ">=": function(args) {
+    return boolean(args[0].value >= args[1].value);
+  },
+  "<": function(args) {
+    return boolean(args[0].value < args[1].value);
+  },
+  "<=": function(args) {
+    return boolean(args[0].value <= args[1].value);
+  }
+  // "not": function(args) {
+  //   return boolean(args[0].type === 'nil' || args[0].type === 'false');
+  // }
+};
+
+
+// var a = [1,2,3,4];
+
+// console.log(a.reduce(function(p,n) { return p + n; }));
+
+// var r = module.exports['+'](1,2,3,4);
+// console.log(r);
