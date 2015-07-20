@@ -145,7 +145,6 @@ module.exports =  {
   read: function(str) {
     debug = false;
     var tokens = tokenize(str);
-    // log(tokens);
     var result = readExp(tokens);
     if (!result.error && result.tokens.length ) {
       result.error = "Surplus tokens";
@@ -154,6 +153,8 @@ module.exports =  {
   }
 };
 
+
+//test
 function read(str) {
   var tokens = tokenize(str);
   log(tokens);
