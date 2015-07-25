@@ -1,38 +1,27 @@
-var log = require('./debug').log;
-var inspect = require('./debug').inspect;
+var log = require('./util').log;
+var inspect = require('./util').inspect;
 
 // require("babel-core").transform("code", {});
 
 var readline = require('./node_readline');
-var evalAst = require('./eval_ast');
-var coreEnv = require('./core');
 
-// read
-function READ(str) {
-  return require('./reader_printer').read(str).exp;
-}
+var READ = require('./reader_printer').read;
+var EVAL = require('./eval');
+var PRINT = require('./reader_printer').print;
 
-// eval
-function EVAL(ast, env) {
-  return evalAst(ast, env);
-}
-
-// print
-function PRINT(exp) {
-  return require('./reader_printer').print(exp);
-}
+var env = require('./env').bindEnv(require('./core'), require('./special'));
 
 // repl
-var rep = function(str) { return PRINT(EVAL(READ(str), coreEnv)); };
+var repl = function(str) { return PRINT(EVAL(READ(str), env)); };
 
-rep("(def! not (fn* (a) (if a false true)))");
+repl("(def! not (fn* (a) (if a false true)))");
 
 // repl loop
 while (true) {
   var line = readline.readline("user> ");
   if (line === null) { break; }
   try {
-    if (line) { console.log(rep(line)); }
+    if (line) { console.log(repl(line)); }
   } catch (exc) {
     if (exc.stack) { console.log(exc.stack); }
     else           { console.log(exc); }

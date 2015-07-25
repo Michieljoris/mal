@@ -1,8 +1,5 @@
-var log = require('./debug').log;
-var inspect = require('./debug').inspect;
-
-var unboundSlice = Array.prototype.slice;
-var slice = Function.prototype.call.bind(unboundSlice);
+var log = require('./util').log;
+var inspect = require('./util').inspect;
 
 function boolean(v) {
   v = v ? 'true' : 'false';
@@ -10,8 +7,12 @@ function boolean(v) {
 }
 
 module.exports =  {
-  '+' : function(args) { return { type: 'number',
-                                  value: args.reduce(function(p,n) { return p.value + n.value; }) };
+  '+' : function(args) {
+    return { type: 'number', value: args.map(function(arg) {
+      return arg.value;
+    }).reduce(function(p,n) {
+      return  p + n; })
+           };
   },
   '*' : function(args) { return { type: 'number',
                                   value:args[0].value * args[1].value };
@@ -70,3 +71,6 @@ module.exports =  {
 
 // var r = module.exports['+'](1,2,3,4);
 // console.log(r);
+
+// var r = module.exports['+']([ {type: 'number', value: 1 } , {type: 'number', value: 2 }]);
+

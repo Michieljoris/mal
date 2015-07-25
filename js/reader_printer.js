@@ -1,5 +1,5 @@
-var log = require('./debug').log;
-var inspect = require('./debug').inspect;
+var log = require('./util').log;
+var inspect = require('./util').inspect;
 
 var tokensRe = /[\s,]*(~@|[\[\]{}()'`~^@]|"(?:\\.|[^\\"])*"|;.*|[^\s\[\]{}('"`,;)]*)/g;
 var openingTokensMap = { list: '(', 'vector': '[', 'hash': '{' };
@@ -121,7 +121,7 @@ function printKeyword(atom) {
 
 
 function printSeq(seq) {
-  var str = seq.seq.map(printExp).join(' ');
+  var str = seq.seq.map(printAst).join(' ');
   return openingTokensMap[seq.seqType] + str + closingTokensMap[seq.seqType];
 }
 
@@ -136,21 +136,20 @@ var print = {
   seq: printSeq
 };
 
-function printExp(exp) {
-  if (!print[exp.type]) return exp;
-  return print[exp.type](exp);
+function printAst(ast) {
+  if (!print[ast.type]) return ast;
+  return print[ast.type](ast);
 }
 
 module.exports =  {
-  print: printExp,
+  print: printAst,
   read: function(str) {
-    debug = false;
     var tokens = tokenize(str);
     var result = readExp(tokens);
     if (!result.error && result.tokens.length ) {
       result.error = "Surplus tokens";
     }
-    return result;
+    return result.exp;
   }
 };
 
@@ -163,7 +162,7 @@ function read(str) {
   if (!result.error && result.tokens.length ) {
     result.error = "Surplus tokens";
   }
-  return result;
+  return result.exp;
 }
 
 function test(str) {
