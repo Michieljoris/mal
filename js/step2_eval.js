@@ -1,12 +1,12 @@
 // require("babel-core").transform("code", {});
 
 var readline = require('./node_readline');
-var evalAst = require('./eval_ast');
-var env = require('./repl_env');
+var evalAst = require('./eval');
+var env = require('./core');
 
 // read
 function READ(str) {
-  return require('./reader_printer').read(str).exp;
+  return require('./reader_printer').read(str);
 }
 
 // eval

@@ -4,7 +4,7 @@ var readline = require('./node_readline');
 
 // read
 function READ(str) {
-  return require('./reader').read(str).exp;
+  return require('./reader_printer').read(str);
 }
 
 // eval
@@ -14,7 +14,7 @@ function EVAL(ast, env) {
 
 // print
 function PRINT(exp) {
-  return require('./reader').print(exp);
+  return require('./reader_printer').print(exp);
 }
 
 // repl

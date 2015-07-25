@@ -9,7 +9,7 @@ var READ = require('./reader_printer').read;
 var EVAL = require('./eval');
 var PRINT = require('./reader_printer').print;
 
-var env = require('./env').bindEnv(require('./core'), require('./special'));
+var env = require('./env').bindEnv(require('./special'), require('./core'));
 
 // repl
 var repl = function(str) { return PRINT(EVAL(READ(str), env)); };
