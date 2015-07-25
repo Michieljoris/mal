@@ -4,7 +4,7 @@ var bind = require('./env').bind;
 
 function EVAL(ast, env) {
   var count = 0;
-  while (true && count++ < 100) {
+  while (true && count++ < 100000) {
     if (ast.type === 'seq') {
       //lists -> apply
       if (ast.seqType === 'list') {
@@ -78,29 +78,51 @@ var str;
 
 // var str = "(+ 1 2 (+ 1 1))";
 function doTests() {
-  str = "(def! a 2)";
+  // str = "(def! a 2)";
 
-  inspect(test(str));
-  // test(str);
-  // inspect(env);
-  str = "(+ 1 a)";
-  // log(env.a);
-
-  // test(str);
-
-  inspect(test(str));
-  str = "(def! gen-plus5 (fn* () (fn* (b) (+ 5 b))))";
-  // test(str);
-  inspect(test(str));
-
-  str = "(def! plus5 (gen-plus5))";
-  // test(str);
-  inspect(test(str));
   // inspect(test(str));
-  str = "(plus5 7)";
+  // // test(str);
+  // // inspect(env);
+  // str = "(+ 1 a)";
+  // // log(env.a);
 
+  // // test(str);
+
+  // inspect(test(str));
+  // str = "(def! gen-plus5 (fn* () (fn* (b) (+ 5 b))))";
+  // // test(str);
+  // inspect(test(str));
+
+  // str = "(def! plus5 (gen-plus5))";
+  // // test(str);
+  // inspect(test(str));
+  // // inspect(test(str));
+  // str = "(plus5 7)";
+
+  // // test(str);
+  // inspect(test(str));
+
+  str = "(def! sum2 (fn* (n acc) (if (= n 0) acc (sum2 (- n 1) (+ n acc)))))";
+  
+  test(str);
+
+  str = "(sum2 10 0)";
+
+  test(str);
+  // inspect(test(str));
+  // ;=>55
+
+  // str = "(def! res2 nil)";
   // test(str);
-  inspect(test(str));
+  // // ;=>nil
+  // str = "(def! res2 (sum2 10000 0))";
+  str = "(sum2 1000 0)";
+  test(str);
+
+
+  // str = "res2";
+  // test(str);
+  // ;=>50005000
 }
 
 // doTests();
