@@ -12,52 +12,80 @@ var specialAtoms = {
       //TODO: check for even, symbol/value pairs..
       newEnv[bindings.shift().value] = EVAL(bindings.shift(), newEnv);
     }
-    return EVAL(args[1], newEnv);
+    return { ast: args[1], env: newEnv };
   },
   "do": function(env, args) {
-    var last;
-    args.forEach(function(exp) {
-      last = EVAL(exp, env);
+    args.slice(0, args.length-1).forEach(function(ast) {
+      EVAL(ast, env);
     });
-    return last || { type: 'symbol', value: 'nil' };
+    var last = args.slice(args.length-1);
+    return { ast: last[0] };
   },
   "if": function(env, args) {
     var cond = EVAL(args[0], env);
-    if (cond.type !== 'nil' && cond.type !== 'false') return EVAL(args[1], env);
-    else return args[2] ? EVAL(args[2], env) : { type: 'nil', value: 'nil' };
+    if (cond.type !== 'nil' && cond.type !== 'false') return { ast: args[1] };
+    else return { ast: args[2] };
   },
   "fn*": function(env, args) {
-    return function(expressions) {
-      var newEnv = Object.create(env);
-      args[0].seq.forEach(function(symbol, i) {
-        newEnv[symbol.value] = expressions[i];
-      });
-      return EVAL(args[1], newEnv);
+    var params = args[0].seq;
+    var body = args[1];
+    var fn = function(expressions) {
+      return EVAL(body, bind(env, params, expressions));
     };
-    
+    return {
+      fn: fn,
+      body: body,
+      params: params,
+      env: env
+    };
   }
 };
 
+function bind(env, symbols, expressions) {
+  var newEnv = Object.create(env);
+  symbols.forEach(function(symbol, i) {
+    newEnv[symbol.value] = EVAL(expressions[i], env);
+  });
+  return newEnv;
+}
+
 function EVAL(ast, env) {
-  var list,fn;
-  if (ast.type === 'seq') {
-    list = ast.seq;
-    if (ast.seqType === 'list') {
-      var specialAtom = specialAtoms[list[0].value];
-      if (specialAtom) return specialAtom(env, list.slice(1));
-      list = ast.seq.map(function(ast) { return EVAL(ast, env); });
-      return list[0](list.slice(1));
+  var count = 0;
+  while (true && count++ < 100) {
+    if (ast.type === 'seq') {
+      //lists -> apply
+      if (ast.seqType === 'list') {
+        var fn = EVAL(ast.seq[0], env);
+        var args = ast.seq.slice(1);
+        var specialAtom = specialAtoms[fn];
+        if (specialAtom) {
+          //Do whatever you want with the unevaluated args
+          var result = specialAtom(env, args);
+          if (result.fn) return result;
+          //Don't return anything, just loop till something does..
+          ast = result.ast; env = result.env || env;
+        } else {
+          args = args.map(function(ast) { return EVAL(ast, env); });
+          if (fn.fn) {
+            ast = result.body;
+            env = bind(result.fn.env, result.fn.params, args);
+          }
+          else return fn(args);
+        }
+      }
+      //Vectors and hashmaps -> evaluate elements
+      else return { type: 'seq', seqType: ast.seqType,
+                    seq: ast.seq.map(function(ast) { return EVAL(ast, env); }) };
     }
-    else {
-      list = ast.seq.map(function(ast) { return EVAL(ast, env); });
-      return { type: 'seq', seqType: ast.seqType, seq: list };
+    //Symbols -> retrieve value from environment
+    else if (ast.type === 'symbol') {
+      if (!env[ast.value]) throw new Error("Unknown symbol " + ast.value);
+      return env[ast.value];
     }
+    //numbers, booleans, keywords, nil -> return as is
+    else return ast || { type: 'nil', value: 'nil' };
   }
-  else if (ast.type === 'symbol') {
-    if (!env[ast.value]) throw new Error("Unknown symbol " + ast.value);
-    return env[ast.value];
-  }
-  else return ast;
+  //If nothing is returned, loop infinitely till something is..
 }
 
 module.exports = function(ast, someEnv) {
@@ -85,7 +113,9 @@ var str = "( ( (fn* (a) (fn* (b) (+ a b))) 5) 7)";
 // ;=>12
 
 str = "(def! not (fn* (a) (if a false true)))";
-// inspect(test(str));
+
+str = "(let* (a 6 b (+ a 2)) (+ a b))";
+inspect(test(str));
 // str = "(def! gen-plus5 (fn* () (fn* (b) (+ 5 b))))";
 // inspect(test(str));
 
