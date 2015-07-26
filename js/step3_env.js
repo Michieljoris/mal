@@ -2,7 +2,7 @@
 
 var readline = require('./node_readline');
 var evalAst = require('./eval');
-var env = require('./env').bindEnv(require('./special'), require('./core'));
+var env = require('./envUtils').bindEnv(require('./special'), require('./core'));
 
 // read
 function READ(str) {

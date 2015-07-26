@@ -1,6 +1,6 @@
 var log = require('./util').log;
 var inspect = require('./util').inspect;
-var bind = require('./env').bind;
+var bind = require('./envUtils').bind;
 
 function EVAL(ast, env) {
   var count = 0;
@@ -48,14 +48,13 @@ module.exports = EVAL;
 
 //Test
 var reader = require('./reader_printer');
-var env = require('./env').bindEnv(require('./special'), require('./core'));
 
 function test(str) {
   var result = EVAL(reader.read(str), env);
   log('Result: >>>>>>>>>>>>>>> ' + str);
 
-  // inspect(result);
-  inspect(reader.print(result));
+  inspect(result);
+  log(reader.print(result));
   log('                                 <result end>');
 }
 
@@ -74,10 +73,37 @@ var str;
 // test('(not nil)');
 
 // inspect(test(str));
+// str = '\\"';
+// str = '\\n';
+// log(str);
+// var re = /\\"/g;
+// log(str.replace(re, '\n'));
+// log(str.replace(re, '"'));
+
 
 
 // var str = "(+ 1 2 (+ 1 1))";
 function doTests() {
+
+  // str = "( (fn* (& more) (count more)) 1 2 3)";
+  str = '(str "bla")';
+  str = '(str 1 "ab" 3)';
+  str = '(println "\\"")';
+  // str = '(str "\\"")';
+  // str = '(prn)';
+  test(str);
+
+  str = '(str "\\"")';
+  test(str);
+// ;=>3
+// ( (fn* (& more) (count more)) 1)
+// ;=>1
+// ( (fn* (& more) (count more)) )
+// ;=>0
+// ( (fn* (a & more) (count more)) 1 2 3)
+// ;=>2
+// ( (fn* (a & more) (count more)) 1)
+// ;=>0
   // str = "(def! a 2)";
 
   // inspect(test(str));
@@ -102,13 +128,13 @@ function doTests() {
   // // test(str);
   // inspect(test(str));
 
-  str = "(def! sum2 (fn* (n acc) (if (= n 0) acc (sum2 (- n 1) (+ n acc)))))";
+  // str = "(def! sum2 (fn* (n acc) (if (= n 0) acc (sum2 (- n 1) (+ n acc)))))";
   
-  test(str);
+  // test(str);
 
-  str = "(sum2 10 0)";
+  // str = "(sum2 10 0)";
 
-  test(str);
+  // test(str);
   // inspect(test(str));
   // ;=>55
 
@@ -116,8 +142,8 @@ function doTests() {
   // test(str);
   // // ;=>nil
   // str = "(def! res2 (sum2 10000 0))";
-  str = "(sum2 1000 0)";
-  test(str);
+  // str = "(sum2 1000 0)";
+  // test(str);
 
 
   // str = "res2";
@@ -125,7 +151,12 @@ function doTests() {
   // ;=>50005000
 }
 
+// var env = require('./envUtils').bindEnv(require('./special'), require('./core'));
 // doTests();
+
+
+
+
   // // str = "(+ 1 2 )";
   // // str = "(let* (a 6 b (+ a 2)) (+ a b))";
   // str = "(def! a 6)";

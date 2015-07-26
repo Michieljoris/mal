@@ -1,5 +1,6 @@
 var log = require('./util').log;
 var inspect = require('./util').inspect;
+var print = require('./reader_printer').print;
 
 function boolean(v) {
   v = v ? 'true' : 'false';
@@ -58,10 +59,43 @@ module.exports =  {
   },
   "<=": function(args) {
     return boolean(args[0].value <= args[1].value);
+  },
+
+  "str": function(args) {
+    var str = args.map(function(arg) {
+      return arg.type === 'string' ? arg.value.slice(1, arg.value.length-1) : print(arg);
+    }).join('');
+    return { type: 'string', value: '"' + str + '"' };
+  },
+
+
+  "pr-str": function(args) {
+    var str = args.map(function(arg) {
+      return print(arg);
+    }).join(' ');
+    str = str
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"');
+    return { type: 'string', value: '"' + str + '"' };
+  },
+
+  "println": function(args) {
+    // inspect(args);
+    var result = args.map(function(arg) {
+      return print(arg, 'print readably');
+    }).join(' ');
+    console.log(result);
+    return { type: 'nil', value: 'nil' };
+  },
+
+  "prn": function(args) {
+    var result = args.map(function(arg) {
+      return print(arg);
+    }).join(' ');
+    console.log(result);
+    // if (args.length) console.log('"' + str + '"');
+    return { type: 'nil', value: 'nil' };
   }
-  // "not": function(args) {
-  //   return boolean(args[0].type === 'nil' || args[0].type === 'false');
-  // }
 };
 
 

@@ -12,6 +12,7 @@ var readerMacros = { "'": "quote",
                      "@" : "deref",
                      "^" : "with-meta"
                    };
+var printReadably;
 
 function tokenize(str) {
   return str.match(tokensRe)
@@ -43,6 +44,8 @@ function isSeqClosing(seq, token) {
 }
 
 function readExp(tokens) {
+
+  // log(tokens);
   var error;
   var stack = [];
   var current = { seq: [] };
@@ -119,10 +122,20 @@ function printKeyword(atom) {
   return ':' + atom.value;
 }
 
-
 function printSeq(seq) {
-  var str = seq.seq.map(printAst).join(' ');
+  var str = seq.seq.map(function(ast) { return printAst(ast); }).join(' ');
   return openingTokensMap[seq.seqType] + str + closingTokensMap[seq.seqType];
+}
+
+function printString(atom) {
+  // log(atom, printReadably);
+  if (printReadably) {
+    return atom.value
+      .slice(1, atom.value.length-1)
+      .replace(/\\n/g, '\n')
+      .replace(/\\"/g, '"');
+  }
+  else return atom.value;
 }
 
 var print = {
@@ -132,17 +145,20 @@ var print = {
   nil: printType,
   true: printType,
   false: printType,
-  string: printValue,
+  string: printString,
   seq: printSeq
 };
 
-function printAst(ast) {
-  if (!print[ast.type]) return ast;
+function printAst(ast, somePrintReadably) {
+  // log('--', printReadably);
+  if (!ast.type) return ast;
   return print[ast.type](ast);
 }
 
 module.exports =  {
-  print: printAst,
+  print: function(ast, somePrintReadably) {
+    printReadably = somePrintReadably;
+    return printAst(ast); },
   read: function(str) {
     var tokens = tokenize(str);
     var result = readExp(tokens);
@@ -169,11 +185,13 @@ function test(str) {
   var exp = read(str);
   log('In test, exp is:');
   inspect(exp);
-  log(printExp(exp.exp));
+  log(printAst(exp));
   log(str);
 }
 
 // ;; Testing read of ^/metadata
+// test('"\""');
+
 // ^{"a" 1} [1 2 3]
 // ;=>(with-meta [1 2 3] {"a" 1})
 
