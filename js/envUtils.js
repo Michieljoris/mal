@@ -5,13 +5,14 @@ var values = require('./util').values;
 
 function bind(env, symbols, expressions) {
   var newEnv = Object.create(env);
-  symbols = symbols.map(function(symbol) { return symbol.value || symbol; });
   symbols.some(function(symbol, i) {
-    if (symbol === '&') {
-      newEnv[symbols[i+1]] = { type: 'seq', seqType: 'list', seq: expressions.slice(i) };
+    if (symbol.toString() === '&') {
+      symbol = symbols[i+1].toString() ;
+      newEnv[symbol] = expressions.slice(i);
+      newEnv[symbol].type = 'list';
       return true;
     }
-    newEnv[symbols[i]] = expressions[i];
+    newEnv[symbols[i].toString()] = expressions[i];
     return false;
   });
   return newEnv;

@@ -1,6 +1,7 @@
 var log = require('./util').log;
 var inspect = require('./util').inspect;
 var bind = require('./envUtils').bind;
+var lookup = require('./envUtils').lookup;
 
 function EVAL(ast, env) {
   var count = 0;
@@ -37,8 +38,9 @@ function EVAL(ast, env) {
     }
     //Symbols -> retrieve value from environment
     else if (ast.type === 'symbol') {
-      if (!env[ast]) throw new Error("Unknown symbol " + ast);
-      return env[ast];
+      var value = env[ast.toString()];
+      if (typeof value === 'undefined') throw new Error("Unknown symbol " + ast);
+      return value;
     }
     //numbers, booleans, keywords, strings -> return as is
     else return ast; 
@@ -55,6 +57,7 @@ var reader = require('./reader_printer');
 
 var env = require('./envUtils').bindEnv(require('./special'), require('./core'));
 function test(str) {
+  log('-----------testing------------------');
   var result = EVAL(reader.read(str), env);
   log('Result: >>>>>>>>>>>>>>> ' + str);
 
@@ -63,10 +66,12 @@ function test(str) {
   log('                                 <result end>');
 }
 
-test('( (fn* (& more) (count more)) 1 2 3)');
+// test("(def! not (fn* (a) (if a false true)))");
+// test('(not false)');
+// test('( (fn* (& more) (count more)) 1 2 3)');
 // test('(= nil nil)');
 // test('(list)');
-// test('(empty? (list))');
+// test('(empty? (list 1))');
 // test('((fn* (a b) a) 1)');
 // test('(fn* (a b) a)');
 // test('+');

@@ -124,7 +124,7 @@ var print = {
   vector: function(seq) { return printSeq(seq, 'vector'); },
   hash: function(seq) { return printSeq(seq, 'hash'); },
   keyword: function(keyword) { return ':' + keyword; },
-  symbol: function(symbol) { return '' + symbol; },
+  symbol: function(symbol) { return  symbol.toString(); },
   string: function printString(string) {
     return printReadably ?
       string.replace(/\\n/g, '\n').replace(/\\"/g, '"') : '"' + string  + '"';
@@ -143,6 +143,7 @@ function printAst(ast, somePrintReadably) {
     }
     return ast; //true
   }
+  // log('ast', ast);
   return print[ast]();
 }
 
