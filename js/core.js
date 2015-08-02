@@ -2,70 +2,67 @@ var log = require('./util').log;
 var inspect = require('./util').inspect;
 var print = require('./reader_printer').print;
 
-function boolean(v) {
-  v = v ? 'true' : 'false';
-  return { type: v, value: v };
-}
-
 module.exports =  {
-  '+' : function(args) {
-    return { type: 'number', value: args.map(function(arg) {
-      return arg.value;
-    }).reduce(function(p,n) {
-      return  p + n; })
-           };
-  },
-  '*' : function(args) { return { type: 'number',
-                                  value:args[0].value * args[1].value };
-                       },
-  '-' : function(args) { return { type: 'number',
-                                  value:args[0].value - args[1].value};
-                       },
-  '/' : function(args) { return { type: 'number',
-                                  value:args[0].value / args[1].value};
-                       },
+  '+' : function(args) { return args
+                         .reduce(function(p,n) {
+                           return  p + n; }); },
+  '*' : function(args) { return args[0] * args[1]; },
+  '-' : function(args) { return args[0] - args[1]; },
+  '/' : function(args) { return args[0] / args[1]; },
   list: function(args) {
-    return { type: 'seq', seqType: 'list', seq: args };
+    args.type = 'list';
+    return args;
   },
   "list?": function(args) {
-    return boolean(args[0].seqType === 'list');
+    return args[0] && args[0].type === 'list' ? true : false;
   },
   "empty?": function(args) {
-    return boolean(!args[0].seq.length);
+    return args[0].length  ? false : true;
   },
   "count": function(args) {
-    return  { type: 'number', value: args[0].type === 'nil' ? 0 : args[0].seq.length };
+    if (args[0] === null) return 0;
+    return args[0].length;
   },
   "=": function(args) {
     // log('=');
     // inspect(args);
-    if (args[0].type === 'seq' && args[1].type === 'seq') {
-      if (args[0].seq.length !== args[1].seq.length) return boolean(false);
-      else return boolean(args[0].seq.every(function(arg, i)  {
-        var arg2 = args[1].seq[i];
-        return module.exports['=']([arg, arg2]).type === 'true';
-      }));
+    if (args[0] !== null && args[1] !== null) {
+      var type1 = args[0].constructor.name;
+      var type2 = args[1].constructor.name;
+      if  (type1 !== type2) return false;
+      if (type1 ==='Array') {
+        if (args[0].length !== args[1].length) return false;
+        else return args[0].every(function(arg, i)  {
+          var arg2 = args[1][i];
+          return module.exports['=']([arg, arg2]);
+        });
+      }
+      if (type1 === 'String') {
+        return args[0].type === args[1].type && args[0] + '' === args[1] + '';
+      }
     }
-    else return boolean(args[0].type === args[1].type && args[0].value === args[1].value);
+    return args[0] === args[1]; //null, numbers, true and false
   },
   ">": function(args) {
-    return boolean(args[0].value > args[1].value);
+    return args[0] > args[1];
   },
   ">=": function(args) {
-    return boolean(args[0].value >= args[1].value);
+    return args[0] >= args[1];
   },
   "<": function(args) {
-    return boolean(args[0].value < args[1].value);
+    return args[0] < args[1];
   },
   "<=": function(args) {
-    return boolean(args[0].value <= args[1].value);
+    return args[0] <= args[1];
   },
 
   "str": function(args) {
     var str = args.map(function(arg) {
-      return arg.type === 'string' ? arg.value.slice(1, arg.value.length-1) : print(arg);
+      return (arg && arg.constructor.name === 'String') ? arg + '' : print(arg);
     }).join('');
-    return { type: 'string', value: '"' + str + '"' };
+    str = new String(str);
+    str.type = 'string';
+    return str;
   },
 
 
@@ -76,7 +73,9 @@ module.exports =  {
     str = str
       .replace(/\\/g, '\\\\')
       .replace(/"/g, '\\"');
-    return { type: 'string', value: '"' + str + '"' };
+    str = new String(str);
+    str.type = 'string';
+    return str;
   },
 
   "println": function(args) {
@@ -85,7 +84,7 @@ module.exports =  {
       return print(arg, 'print readably');
     }).join(' ');
     console.log(result);
-    return { type: 'nil', value: 'nil' };
+    return null;
   },
 
   "prn": function(args) {
@@ -94,7 +93,7 @@ module.exports =  {
     }).join(' ');
     console.log(result);
     // if (args.length) console.log('"' + str + '"');
-    return { type: 'nil', value: 'nil' };
+    return null;
   }
 };
 

@@ -32,42 +32,48 @@ function isSeqOpening(token) {
    case '{' : type = 'hash'; break;
   default: ;
   }
-  return type ? { type: 'seq', seqType: type, seq: [] } : false;
+  if (type) {
+    var result = [];
+    result.type = type;
+    return result;
+  }
+  return false;
 }
 
 function isSeqClosing(seq, token) {
   if (~closingTokens.indexOf(token)) {
-    if (closingTokensMap[seq.seqType] !== token) throw "Unexpected \"" + token + "\"";
+    if (closingTokensMap[seq.type] !== token) throw "Unexpected \"" + token + "\"";
     return true;
   }
   return false;
 }
 
 function readExp(tokens) {
-
   // log(tokens);
   var error;
   var stack = [];
-  var current = { seq: [] };
+  var current = [];
   if (!tokens.length) throw "no tokens";
   do {
     var t = tokens.shift();
     var seq = isSeqOpening(t);
     var readerMacro = readerMacros[t];
     if (readerMacro) {
-      readerMacro = { type: 'seq', seqType: 'list', seq: [readAtom(readerMacro)]};
+      // readerMacro = { type: 'seq', seqType: 'list', seq: [readAtom(readerMacro)]};
+      readerMacro = [readAtom(readerMacro)];
+      readerMacro.type = 'list';
       if (t === '^') {
         var meta = readExp(tokens);
         tokens = meta.tokens;
       }
       var exp = readExp(tokens);
-      readerMacro.seq.push(exp.exp);
-      if (meta) readerMacro.seq.push(meta.exp);
+      readerMacro.push(exp.exp);
+      if (meta) readerMacro.push(meta.exp);
       tokens = exp.tokens;
-      current.seq.push(readerMacro);
+      current.push(readerMacro);
     }
     else if (seq)  {
-      current.seq.push(seq);
+      current.push(seq);
       stack.push(current);
       current = seq;
     }
@@ -75,84 +81,69 @@ function readExp(tokens) {
       current = stack.pop();
     }
     else {
-      current.seq.push(readAtom(t));
+      current.push(readAtom(t));
     }
   } while (tokens.length && stack.length);
 
   if (stack.length) {
     var last = stack.pop();
-    if (!stack.length) last = last.seq[0];
-    throw last.type + ' is missing closing \"' + closingTokensMap[last.seqType] + '\"';
+    if (!stack.length) last = last[0];
+    throw last.type + ' is missing closing \"' + closingTokensMap[last.type] + '\"';
   }
-  return { exp: current.seq[0], tokens: tokens };
+  return { exp: current[0], tokens: tokens };
 }
 
 function readAtom(token) {
+  var tokenMap = { 'nil': null, 'true': true, 'false': false };
+  var result = tokenMap[token];
+  if (typeof result !== 'undefined') return result;
+  if (token.match(/^\d+(\.\d+)?$/)) return Number.parseFloat(token);
+
   var type = 'symbol';
   var value = token;
-  if (~['nil', 'true', 'false'].indexOf(token)) {
-    type = token;
-  }
-  else if (token[0] === ':') {
+ if (token[0] === ':') {
     type = 'keyword';
     value = token.slice(1); 
   }
   else if (token[0] === '"') {
     type = 'string';
-    // value = token.slice(1, token.length-1); 
-    value = token;
+    value = token.slice(1, token.length-1); 
   }
-  else if (token.match(/^\d+(\.\d+)?$/)) {
-    type = 'number';
-    value = Number.parseFloat(token);
-  }
-  return { type: type, value: value };
-}
-
-
-function printValue(atom) {
-  return atom.value;
-}
-
-function printType(atom) {
-  return atom.type;
-}
-
-function printKeyword(atom) {
-  return ':' + atom.value;
+  result = new String(value);
+  result.type = type;
+  return result;
 }
 
 function printSeq(seq) {
-  var str = seq.seq.map(function(ast) { return printAst(ast); }).join(' ');
-  return openingTokensMap[seq.seqType] + str + closingTokensMap[seq.seqType];
-}
-
-function printString(atom) {
-  // log(atom, printReadably);
-  if (printReadably) {
-    return atom.value
-      .slice(1, atom.value.length-1)
-      .replace(/\\n/g, '\n')
-      .replace(/\\"/g, '"');
-  }
-  else return atom.value;
+  var str = seq.map(function(ast) { return printAst(ast); }).join(' ');
+  return openingTokensMap[seq.type] + str + closingTokensMap[seq.type];
 }
 
 var print = {
-  keyword: printKeyword,
-  symbol: printValue,
-  number: printValue,
-  nil: printType,
-  true: printType,
-  false: printType,
-  string: printString,
-  seq: printSeq
+  list: function(seq) { return printSeq(seq, 'list'); },
+  vector: function(seq) { return printSeq(seq, 'vector'); },
+  hash: function(seq) { return printSeq(seq, 'hash'); },
+  keyword: function(keyword) { return ':' + keyword; },
+  symbol: function(symbol) { return '' + symbol; },
+  string: function printString(string) {
+    return printReadably ?
+      string.replace(/\\n/g, '\n').replace(/\\"/g, '"') : '"' + string  + '"';
+  }
 };
 
+print[null] = function() { return 'nil' };
+print[false] = function() { return 'false' };
+print[0] = function() { return 0 };
+
 function printAst(ast, somePrintReadably) {
-  // log('--', printReadably);
-  if (!ast.type) return ast;
-  return print[ast.type](ast);
+  if (ast) {
+    if (typeof ast === 'object') {
+      if (ast.fn) return ast.fn;
+      return print[ast.type](ast);
+    }
+    return ast; //true
+  }
+  return print[ast]();
 }
 
 module.exports =  {
@@ -162,9 +153,10 @@ module.exports =  {
   read: function(str) {
     var tokens = tokenize(str);
     var result = readExp(tokens);
-    if (!result.error && result.tokens.length ) {
+    if (!result.error && tokens.length) {
       result.error = "Surplus tokens";
     }
+    if (result.error) throw(result.error);
     return result.exp;
   }
 };
@@ -173,22 +165,23 @@ module.exports =  {
 //test
 function read(str) {
   var tokens = tokenize(str);
-  log(tokens);
-  var result = readExp(tokens);
-  if (!result.error && result.tokens.length ) {
-    result.error = "Surplus tokens";
-  }
-  return result.exp;
+  // log(tokens);
+  var result = module.exports.read(str);
+  return result;
 }
 
 function test(str) {
-  var exp = read(str);
-  log('In test, exp is:');
-  inspect(exp);
-  log(printAst(exp));
   log(str);
+  // printReadably = true;
+  var result = module.exports.read(str);
+  // log('In test, exp is:');
+  inspect(result);
+  log(module.exports.print(result));
 }
 
+// test('(1 2 3)');
+
+// test('a');
 // ;; Testing read of ^/metadata
 // test('"\""');
 
@@ -196,6 +189,8 @@ function test(str) {
 // ;=>(with-meta [1 2 3] {"a" 1})
 
 // test('(1 2, 3,,,,),,');
+// test('[nil false true mysymbol :mykeyword 1 "mystring" (0 2 3 4)]');
+
 // test('nil');
 // test("(a b c )");
 // test("'(a c  '(d e)  'f g)");
@@ -204,8 +199,10 @@ function test(str) {
 // test('^{"a" 1} [1 2 3]');
 // test('(+ 1 (+   2 3))');
 // test('(123.456 :keyword symbol "string" [nil true false])');
+// test('"myst\\\"ring"');
+// test("(1 2 3)");
 // test("'abc");
-
+// test('"abc\\"def"');
 // ;; Testing read of nil/true/false
 // nil
 // ;=>nil
@@ -342,3 +339,17 @@ function test(str) {
 // ;; Testing read of @/deref
 // @a
 // ;=>(deref a)
+
+
+
+// var test = new String("test");
+// test.type = "symbol";
+// log(test);
+// console.log(test +""); // prints out "test"
+// console.log(test.test); // prints out "test inner"
+// console.log(test.constructor.name); //String
+// log(typeof []);
+// log([].constructor.name); //Array
+// var a = ['bla'];
+// a.type = 'vector';
+// log(a);

@@ -5,17 +5,18 @@ var bind = require('./envUtils').bind;
 function EVAL(ast, env) {
   var count = 0;
   while (true && count++ < 100000) {
-    if (ast.type === 'seq') {
+    if (ast === null) return null; //silly javascript, on object that's not an object..
+    if (ast.constructor.name === 'Array') {
       //lists -> apply
-      if (ast.seqType === 'list') {
+      if (ast.type === 'list') {
         // log(ast);
-        var fn = EVAL(ast.seq[0], env);
+        var fn = EVAL(ast[0], env);
         // log(fn);
-        var args = ast.seq.slice(1);
+        var args = ast.slice(1);
         if (fn.special) {
           //Do whatever you want with the unevaluated args
           var result = fn(env, args);
-        // log(result);
+          // log(result);
           if (result.fn) return result; //this is a lisp function
           //Don't return anything, just loop till something does (tco)..
           ast = result.ast; env = result.env || env;
@@ -28,16 +29,19 @@ function EVAL(ast, env) {
         }
       }
       //Vectors and hashmaps -> evaluate elements
-      else return { type: 'seq', seqType: ast.seqType,
-                    seq: ast.seq.map(function(ast) { return EVAL(ast, env); }) };
+      else {
+        var seq = ast.map(function(ast) { return EVAL(ast, env); });
+        seq.type = ast.type;
+        return seq;
+      }
     }
     //Symbols -> retrieve value from environment
     else if (ast.type === 'symbol') {
-      if (!env[ast.value]) throw new Error("Unknown symbol " + ast.value);
-      return env[ast.value];
+      if (!env[ast]) throw new Error("Unknown symbol " + ast);
+      return env[ast];
     }
-    //numbers, booleans, keywords, nil -> return as is
-    else return ast || { type: 'nil', value: 'nil' };
+    //numbers, booleans, keywords, strings -> return as is
+    else return ast; 
   }
   //If nothing is returned, loop infinitely till something is..
 }
@@ -45,10 +49,11 @@ function EVAL(ast, env) {
 module.exports = EVAL;
 
 
-
 //Test
 var reader = require('./reader_printer');
+// var env = require('./core');
 
+var env = require('./envUtils').bindEnv(require('./special'), require('./core'));
 function test(str) {
   var result = EVAL(reader.read(str), env);
   log('Result: >>>>>>>>>>>>>>> ' + str);
@@ -58,7 +63,19 @@ function test(str) {
   log('                                 <result end>');
 }
 
-var str;
+test('( (fn* (& more) (count more)) 1 2 3)');
+// test('(= nil nil)');
+// test('(list)');
+// test('(empty? (list))');
+// test('((fn* (a b) a) 1)');
+// test('(fn* (a b) a)');
+// test('+');
+// test('(let* (z 9) z)');
+// test('(def! a 1)');
+// test('a');
+// var str;
+// test('(+ 1 2)');
+// make test^js^step0
 
 // ;; Testing closures
 // var str = "( ( (fn* (a) (fn* (b) (+ a b))) 5) 7)";
@@ -194,4 +211,39 @@ function doTests() {
 // inspect(r);
 // inspect(l);
 // inspect(r2);
+// Object.defineProperty( String.prototype, 'prop', {
+//   get: function () {  console.log('debug');
+//                       inspect(this);
+//                      return this._prop;
+//                      // this function is the getter
+//                    },
+//     set: function(name) {
 
+//                       inspect(this);
+//       // inspect(name);
+//       log(this + "");
+//       this._prop = name;
+
+//                       inspect(this);
+//     }
+// }); 
+
+// var a = "foo";
+// log(a);
+// a.prop = "bar";
+// log(a);
+// log(a.prop);
+// nil, false, true
+// "bla".type = string, symbol, keyword
+// [].type = list, vector, hash
+// var person = 'bl';
+// Object.defineProperty(person, 'fullName', {
+//     get: function() {
+//         return firstName + ' ' + lastName;
+//     },
+//     set: function(name) {
+//         var words = name.split(' ');
+//         this.firstName = words[0] || '';
+//         this.lastName = words[1] || '';
+//     }
+// });
