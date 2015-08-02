@@ -1,0 +1,39 @@
+<html>
+  <style>
+    button {
+    width: 200px;
+    font-size: 20px;
+    }
+    textarea {
+    font: 12px monospace;
+    }
+  </style>
+  <body>
+    <!-- <a href="https://github.com/kanaka/miniMAL"><button id=bar><b>miniMAL</b></button></a> -->
+    <div>
+    </div>
+    <div>
+      <b>REPL:</b>
+    </div>
+    <textarea rows=40 cols=80 wrap="off"></textarea>
+    <textarea rows=40 cols=40 wrap="off"></textarea>
+  </body>
+  <script src="web/mal.js"></script>
+  <!--<script src="stepB_web.js"></script>-->
+  <script>
+    var repl = function(){ 
+    MAL.init();
+    t[1].value = t[0].value.split('\n').map(function(a) { 
+    return a ? MAL.repl(a) : ''; 
+    }).join('\n'); 
+    }; 
+    var example_code = [
+       "(+ 1 2)"
+    ].join("\n");
+    var b = document.body;
+    var t = document.getElementsByTagName('textarea');
+    t[0].innerHTML = example_code;
+    t[0].onkeyup = repl; 
+    repl(); 
+  </script>
+</html>

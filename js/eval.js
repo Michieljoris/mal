@@ -1,64 +1,76 @@
-var log = require('./util').log;
-var inspect = require('./util').inspect;
-var bind = require('./envUtils').bind;
-var lookup = require('./envUtils').lookup;
-
-function EVAL(ast, env) {
-  var count = 0;
-  while (true && count++ < 100000) {
-    if (ast === null) return null; //silly javascript, on object that's not an object..
-    if (ast.constructor.name === 'Array') {
-      //lists -> apply
-      if (ast.type === 'list') {
-        // log(ast);
-        var fn = EVAL(ast[0], env);
-        // log(fn);
-        var args = ast.slice(1);
-        if (fn.special) {
-          //Do whatever you want with the unevaluated args
-          var result = fn(env, args);
-          // log(result);
-          if (result.fn) return result; //this is a lisp function
-          //Don't return anything, just loop till something does (tco)..
-          ast = result.ast; env = result.env || env;
-        } else {
-          args = args.map(function(ast) { return EVAL(ast, env); });
-          // log(typeof fn);
-          if (typeof fn === 'function') return fn(args); //javascript function
-          ast = fn.ast;
-          env = bind(fn.env, fn.params, args);
+if (typeof MAL === 'undefined') MAL = {};
+MAL.EVAL = (function(env) {
+  var log = env.util.log;
+  var inspect = env.util.insp;
+  var bind = env.bind;
+  
+  return function EVAL(ast, env) {
+    var count = 0;
+    while (true && count++ < 100000) {
+      if (ast === null) return null; //silly javascript, on object that's not an object..
+      if (ast.constructor.name === 'Array') {
+        //lists -> apply
+        if (ast.type === 'list') {
+          // log(ast);
+          var fn = EVAL(ast[0], env);
+          // log(fn);
+          var args = ast.slice(1);
+          if (fn.special) {
+            //Do whatever you want with the unevaluated args
+            var result = fn(env, args);
+            // log(result);
+            if (result.fn) return result; //this is a lisp function
+            //Don't return anything, just loop till something does (tco)..
+            ast = result.ast; env = result.env || env;
+          } else {
+            args = args.map(function(ast) { return EVAL(ast, env); });
+            // log(typeof fn);
+            if (typeof fn === 'function') return fn(args); //javascript function
+            ast = fn.ast;
+            env = bind(fn.env, fn.params, args);
+          }
+        }
+        //Vectors and hashmaps -> evaluate elements
+        else {
+          var seq = ast.map(function(ast) { return EVAL(ast, env); });
+          seq.type = ast.type;
+          return seq;
         }
       }
-      //Vectors and hashmaps -> evaluate elements
-      else {
-        var seq = ast.map(function(ast) { return EVAL(ast, env); });
-        seq.type = ast.type;
-        return seq;
+      //Symbols -> retrieve value from environment
+      else if (ast.type === 'symbol') {
+        var value = env[ast.toString()];
+        if (typeof value === 'undefined') throw new Error("Unknown symbol " + ast);
+        return value;
       }
+      //numbers, booleans, keywords, strings -> return as is
+      else return ast; 
     }
-    //Symbols -> retrieve value from environment
-    else if (ast.type === 'symbol') {
-      var value = env[ast.toString()];
-      if (typeof value === 'undefined') throw new Error("Unknown symbol " + ast);
-      return value;
-    }
-    //numbers, booleans, keywords, strings -> return as is
-    else return ast; 
+    //If nothing is returned, loop infinitely till something is..
   }
-  //If nothing is returned, loop infinitely till something is..
-}
 
-module.exports = EVAL;
+})((function() {
+  var inNode = typeof module !== 'undefined';
+  return {
+    inNode: inNode,
+    util: inNode ? require('./util') : MAL.util,
+    bind: inNode ? require('./envUtils').bind : MAL.envUtils.bind
+  };
+})()); 
+
+if (typeof module !== 'undefined') { module.exports = MAL.EVAL; }
 
 
 //Test
-var reader = require('./reader_printer');
-// var env = require('./core');
-
-var env = require('./envUtils').bindEnv(require('./special'), require('./core'));
 function test(str) {
+  var reader = require('./reader_printer');
+  // var env = require('./core');
+
+    var env = require('./envUtils').bindEnv(require('./special'), require('./core'));
+  var log = require('./util').log;
+    var inspect = require('./util').insp;
   log('-----------testing------------------');
-  var result = EVAL(reader.read(str), env);
+  var result = MAL.EVAL(reader.read(str), env);
   log('Result: >>>>>>>>>>>>>>> ' + str);
 
   inspect(result);
