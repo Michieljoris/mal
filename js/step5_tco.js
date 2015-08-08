@@ -12,7 +12,7 @@ var PRINT = require('./reader_printer').print;
 var env = require('./envUtils').bindEnv(require('./special'), require('./core'));
 
 // repl
-var repl = function(str) { return PRINT(EVAL(READ(str), env), 'readably'); };
+var repl = function(str) { return PRINT(EVAL(READ(str), env)); };
 
 repl("(def! not (fn* (a) (if a false true)))");
 

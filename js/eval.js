@@ -92,8 +92,17 @@ function test() {
     log(reader.print(result));
     log('                                 <result end>');
   }
-  rep('(do true false)');
-  // rep('(if false false false)');
+  // rep('(if true false)');
+  // rep('(if true false false)');
+  // rep('(read-string "(1 2 (3 4) nil)")');
+  // rep("(def! load-file (fn* (f) (read-string (str \"(do \" (slurp f) \")\"))))");
+  // rep('(def! load-file (fn* (f) (str "(do " (slurp f) ")")))');
+  // rep("(def! load-file (fn* (f) (slurp f) ))");
+  rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
+  rep('(load-file "../tests/incB.mal")');
+  // rep('"bla"');
+  // rep('(inc5 4)');
+  // rep('(str "(do" )');
   // rep('(def! ok (list + 2 2))');
   // rep('ok');
   // rep('(eval ok)');

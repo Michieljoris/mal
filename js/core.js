@@ -97,7 +97,7 @@ MAL.core = (function(env) {
       return str;
     },
 
-    'read-str': function(str) {
+    'read-string': function(str) {
       return read(str);
     }
   };
