@@ -6,3 +6,5 @@ core
 eval
 special
 MAL
+
+$when-changed . -c sh build_browser.s
