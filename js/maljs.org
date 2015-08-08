@@ -8,3 +8,7 @@ special
 MAL
 
 $when-changed . -c sh build_browser.s
+
+* test a step
+make test^js^step5
+

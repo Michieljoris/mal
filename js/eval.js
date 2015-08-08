@@ -5,6 +5,8 @@ MAL.EVAL = (function(env) {
   var bind = env.bind;
   
   return function EVAL(ast, env) {
+    // log(ast);
+    // log('-------');
     var count = 0;
     while (true && count++ < 100000) {
       if (ast === null) return null; //silly javascript, on object that's not an object..
@@ -20,12 +22,18 @@ MAL.EVAL = (function(env) {
             var result = fn(env, args);
             // log(result);
             if (result.fn) return result; //this is a lisp function
+            if (!result.tco) return result.ast;
             //Don't return anything, just loop till something does (tco)..
             ast = result.ast; env = result.env || env;
           } else {
             args = args.map(function(ast) { return EVAL(ast, env); });
+            // log(args);
             // log(typeof fn);
-            if (typeof fn === 'function') return fn(args); //javascript function
+            if (typeof fn === 'function') {
+              var r =  fn.apply(null, args); //javascript function
+              // inspect(r);
+              return r;
+            }
             ast = fn.ast;
             env = bind(fn.env, fn.params, args);
           }
@@ -62,26 +70,44 @@ if (typeof module !== 'undefined') { module.exports = MAL.EVAL; }
 
 
 //Test
-function test(str) {
+function test() {
+  var log = require('./util').log;
+  var inspect = require('./util').insp;
+
+  var env = require('./envUtils').bindEnv(require('./special'), require('./core'));
+
+  env.eval = function(ast) {
+    return MAL.EVAL(ast, env);
+  };
+
   var reader = require('./reader_printer');
   // var env = require('./core');
 
-    var env = require('./envUtils').bindEnv(require('./special'), require('./core'));
-  var log = require('./util').log;
-    var inspect = require('./util').insp;
-  log('-----------testing------------------');
-  var result = MAL.EVAL(reader.read(str), env);
-  log('Result: >>>>>>>>>>>>>>> ' + str);
+  function rep(str) {
+    log('-----------testing------------------');
+    var result = MAL.EVAL(reader.read(str), env);
+    log('Result of: ' + str);
 
-  inspect(result);
-  log(reader.print(result));
-  log('                                 <result end>');
+    // inspect(result);
+    log(reader.print(result));
+    log('                                 <result end>');
+  }
+  rep('(do true false)');
+  // rep('(if false false false)');
+  // rep('(def! ok (list + 2 2))');
+  // rep('ok');
+  // rep('(eval ok)');
 }
 
+// test();
 // test("(def! not (fn* (a) (if a false true)))");
 // test('(not false)');
 // test('( (fn* (& more) (count more)) 1 2 3)');
-// test('(= nil nil)');
+// test('(= (list 1 2) [1 2])');
+// test('(str "abc")');
+// test('(let* (a (list + 2 2)) a)');
+// tes
+
 // test('(list)');
 // test('(empty? (list 1))');
 // test('((fn* (a b) a) 1)');

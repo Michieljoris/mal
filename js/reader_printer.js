@@ -143,6 +143,9 @@ MAL.reader_printer = (function(env) {
         if (ast.fn) return ast.fn;
         return print[ast.type](ast);
       }
+      if (typeof ast === 'function') {
+        return '[JS-Fn]';
+      }
       return ast; //true
     }
     // log('ast', ast);
@@ -173,7 +176,7 @@ MAL.reader_printer = (function(env) {
 })()); 
 
 if (typeof module !== 'undefined') {
-  module.exports = reader_printer;
+  module.exports = MAL.reader_printer;
 }
 
   //test

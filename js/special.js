@@ -8,6 +8,10 @@ MAL.special = (function(env) {
     return fn;
   };
 
+  function isNull(arg) {
+      return typeof arg !== 'undefined' ? arg : null;
+  }
+
   return {
     "def!": special(function(env, args) {
       return { ast: env[args[0].toString()] = EVAL(args[1], env) };
@@ -19,19 +23,21 @@ MAL.special = (function(env) {
         //TODO: check for even, symbol/value pairs..
         newEnv[bindings.shift().toString()] = EVAL(bindings.shift(), newEnv);
       }
-      return { ast: args[1] || null, env: newEnv };
+      var ast = typeof args[1] !== 'undefined' ? args[1] : null;
+      return { ast: ast, env: newEnv, tco: true };
     }),
     "do": special(function(env, args) {
       args.slice(0, args.length-1).forEach(function(ast) {
         EVAL(ast, env);
       });
-      var last = args.slice(args.length-1);
-      return { ast: last[0] || null};
+      var last = args.slice(args.length-1)[0];
+      var ast = typeof last !== 'undefined' ? last : null;
+      return { ast: ast, tco: true };
     }),
     "if": special(function(env, args) {
       var cond = EVAL(args[0], env);
-      if (cond !== null && cond !== false) return { ast: args[1] };
-      else return { ast: args[2] || null};
+      if (cond !== null && cond !== false) return { ast: isNull(args[1]), tco: true };
+      else return { ast: isNull(args[2]), tco: true };
     }),
     "fn*": special(function(env, args) {
       var params = args[0];

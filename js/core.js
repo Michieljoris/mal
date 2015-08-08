@@ -3,62 +3,52 @@ MAL.core = (function(env) {
   var log = env.util.log;
   var inspect = env.util.insp;
   var print = env.reader_printer.print; 
+  var read = env.reader_printer.read; 
+  var fs = env.fs;
 
   return {
-    '+' : function(args) { return args
-                           .reduce(function(p,n) {
-                             return  p + n; }); },
-    '*' : function(args) { return args[0] * args[1]; },
-    '-' : function(args) { return args[0] - args[1]; },
-    '/' : function(args) { return args[0] / args[1]; },
-    list: function(args) {
+    '+' : function() { var args = [].slice.call(arguments);
+                       return args
+                       .reduce(function(p,n) {
+                         return  p + n; }); },
+    '*' : function(a,b) { return a*b; },
+    '-' : function(a,b) { return a-b; },
+    '/' : function(a,b) { return a/b; },
+    list: function() {
+      var args = [].slice.call(arguments);
       args.type = 'list';
       return args;
     },
-    "list?": function(args) {
-      return args[0] && args[0].type === 'list' ? true : false;
-    },
-    "empty?": function(args) {
-      return args[0].length  ? false : true;
-    },
-    "count": function(args) {
-      if (args[0] === null) return 0;
-      return args[0].length;
-    },
-    "=": function(args) {
+    "list?": function(l) { return l && l.type === 'list' ? true : false; },
+    "empty?": function(l) { return l.length  ? false : true; },
+    "count": function(l) { return l === null ? 0 : l.length; },
+    "=": function(a,b) {
       // log('=');
       // inspect(args);
-      if (args[0] !== null && args[1] !== null) {
-        var type1 = args[0].constructor.name;
-        var type2 = args[1].constructor.name;
+      if (a !== null && b !== null) {
+        var type1 = a.constructor.name;
+        var type2 = b.constructor.name;
         if  (type1 !== type2) return false;
         if (type1 ==='Array') {
-          if (args[0].length !== args[1].length) return false;
-          else return args[0].every(function(arg, i)  {
-            var arg2 = args[1][i];
-            return module.exports['=']([arg, arg2]);
+          if (a.length !== b.length) return false;
+          else return a.every(function(arg, i)  {
+            var arg2 = b[i];
+            return module.exports['='](arg, arg2);
           });
         }
         if (type1 === 'String') {
-          return args[0].type === args[1].type && args[0] + '' === args[1] + '';
+          return a.type === b.type && a + '' === b + '';
         }
       }
-      return args[0] === args[1]; //null, numbers, true and false
+      return a === b; //null, numbers, true and false
     },
-    ">": function(args) {
-      return args[0] > args[1];
-    },
-    ">=": function(args) {
-      return args[0] >= args[1];
-    },
-    "<": function(args) {
-      return args[0] < args[1];
-    },
-    "<=": function(args) {
-      return args[0] <= args[1];
-    },
+    ">": function(a,b) {return a > b;},
+    ">=": function(a,b) {return a >= b;},
+    "<": function(a,b) {return a < b;},
+    "<=": function(a,b) {return a <= b;},
 
-    "str": function(args) {
+    "str": function() {
+      var args = [].slice.call(arguments);
       var str = args.map(function(arg) {
         return (arg && arg.constructor.name === 'String') ? arg + '' : print(arg);
       }).join('');
@@ -67,8 +57,8 @@ MAL.core = (function(env) {
       return str;
     },
 
-
-    "pr-str": function(args) {
+    "pr-str": function() {
+      var args = [].slice.call(arguments);
       var str = args.map(function(arg) {
         return print(arg);
       }).join(' ');
@@ -80,8 +70,9 @@ MAL.core = (function(env) {
       return str;
     },
 
-    "println": function(args) {
+    "println": function() {
       // inspect(args);
+      var args = [].slice.call(arguments);
       var result = args.map(function(arg) {
         return print(arg, 'print readably');
       }).join(' ');
@@ -89,13 +80,25 @@ MAL.core = (function(env) {
       return null;
     },
 
-    "prn": function(args) {
+    "prn": function() {
+      var args = [].slice.call(arguments);
       var result = args.map(function(arg) {
         return print(arg);
       }).join(' ');
       console.log(result);
       // if (args.length) console.log('"' + str + '"');
       return null;
+    },
+
+    slurp: function(fileName) {
+      var str = fs.readFileSync(fileName + "", { encoding: 'utf8' });
+      str = new String(str);
+      str.type = 'string';
+      return str;
+    },
+
+    'read-str': function(str) {
+      return read(str);
     }
   };
 
@@ -104,7 +107,8 @@ MAL.core = (function(env) {
   return {
     inNode: inNode,
     util: inNode ? require('./util') : MAL.util,
-    reader_printer: inNode ? require('./reader_printer') : MAL.reader_printer
+    reader_printer: inNode ? require('./reader_printer') : MAL.reader_printer,
+    fs: require('fs')
   };
 })()); 
 
