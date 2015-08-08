@@ -6,7 +6,7 @@ MAL.core = (function(env) {
   var read = env.reader_printer.read; 
   var fs = env.fs;
 
-  return {
+  var functions =  {
     '+' : function() { var args = [].slice.call(arguments);
                        return args
                        .reduce(function(p,n) {
@@ -33,7 +33,7 @@ MAL.core = (function(env) {
           if (a.length !== b.length) return false;
           else return a.every(function(arg, i)  {
             var arg2 = b[i];
-            return module.exports['='](arg, arg2);
+            return functions['='](arg, arg2);
           });
         }
         if (type1 === 'String') {
@@ -99,8 +99,24 @@ MAL.core = (function(env) {
 
     'read-string': function(str) {
       return read(str);
+    },
+
+    cons: function(exp, list) {
+      var result = [exp].concat(list);
+      result.type = 'list';
+      return result;
+    },
+
+    concat: function() {
+      var args = [].slice.call(arguments);
+      var result = args.reduce(function(p, n) {
+        return p.concat(n);
+      }, []);
+      result.type = 'list';
+      return result;
     }
   };
+  return functions;
 
 })((function() {
   var inNode = typeof module !== 'undefined';
@@ -125,3 +141,4 @@ if (typeof module !== 'undefined') { module.exports = MAL.core; }
 
 // var r = module.exports['+']([ {type: 'number', value: 1 } , {type: 'number', value: 2 }]);
 
+// console.log(MAL.core.concat());

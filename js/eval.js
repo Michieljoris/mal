@@ -88,7 +88,7 @@ function test() {
     var result = MAL.EVAL(reader.read(str), env);
     log('Result of: ' + str);
 
-    // inspect(result);
+    inspect(result);
     log(reader.print(result));
     log('                                 <result end>');
   }
@@ -98,8 +98,21 @@ function test() {
   // rep("(def! load-file (fn* (f) (read-string (str \"(do \" (slurp f) \")\"))))");
   // rep('(def! load-file (fn* (f) (str "(do " (slurp f) ")")))');
   // rep("(def! load-file (fn* (f) (slurp f) ))");
-  rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
-  rep('(load-file "../tests/incB.mal")');
+  // rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
+  // rep('(load-file "../tests/incB.mal")');
+  // rep('(quasiquote 1)');
+  // rep('(quasiquote (1 2 3))');
+  // rep('(def! lst (quote (2 3)))');
+  // rep('(quasiquote (1 (splice-unquote lst) 3))');
+
+  rep('(def! a 1)');
+  rep('(quote (1 ~a 3))');
+  // rep('(cons 1 [2 3])');
+  // rep('(def! a [1 2])');
+  // rep('(concat [1] a (list 4 5))');
+  // rep('a');
+  // rep('(let* (a 2) (eval (+ a 2)))');
+  // rep('(eval (+ a 2))');
   // rep('"bla"');
   // rep('(inc5 4)');
   // rep('(str "(do" )');
@@ -108,7 +121,7 @@ function test() {
   // rep('(eval ok)');
 }
 
-// test();
+test();
 // test("(def! not (fn* (a) (if a false true)))");
 // test('(not false)');
 // test('( (fn* (& more) (count more)) 1 2 3)');
