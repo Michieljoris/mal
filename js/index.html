@@ -28,7 +28,11 @@
     }).join('\n'); 
     }; 
     var example_code = [
-       "(+ 1 2)"
+    "(+ 1 2)",
+    '(def! a (list + 1 2))',
+    '(eval a)',
+    '(eval (read-string "(+ 1 2)"))'
+
     ].join("\n");
     var b = document.body;
     var t = document.getElementsByTagName('textarea');

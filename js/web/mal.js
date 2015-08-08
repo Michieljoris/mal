@@ -1,12 +1,17 @@
 var MAL = {
   init: function() {
     MAL.env = MAL.envUtils.bindEnv(MAL.special, MAL.core);
+    MAL.repl("(def! not (fn* (a) (if a false true)))");
+    MAL.env.eval = function(ast) {
+      return MAL.EVAL(ast, MAL.env);
+};
   },
   repl: function (str) {
-  var READ = MAL.reader_printer.read;
-  var EVAL = MAL.EVAL;
-  var PRINT = MAL.reader_printer.print;
-  return PRINT(EVAL(READ(str), MAL.env), 'readably');
+    var READ = MAL.reader_printer.read;
+    var EVAL = MAL.EVAL;
+    var PRINT = MAL.reader_printer.print;
+    var repl = PRINT(EVAL(READ(str), MAL.env));
+    return repl;
   }
 };
 if (typeof MAL === 'undefined') MAL = {};
@@ -229,6 +234,9 @@ MAL.reader_printer = (function(env) {
         if (ast.fn) return ast.fn;
         return print[ast.type](ast);
       }
+      if (typeof ast === 'function') {
+        return '[JS-Fn]';
+      }
       return ast; //true
     }
     // log('ast', ast);
@@ -259,7 +267,7 @@ MAL.reader_printer = (function(env) {
 })()); 
 
 if (typeof module !== 'undefined') {
-  module.exports = reader_printer;
+  module.exports = MAL.reader_printer;
 }
 
   //test
@@ -457,62 +465,52 @@ MAL.core = (function(env) {
   var log = env.util.log;
   var inspect = env.util.insp;
   var print = env.reader_printer.print; 
+  var read = env.reader_printer.read; 
+  var fs = env.fs;
 
   return {
-    '+' : function(args) { return args
-                           .reduce(function(p,n) {
-                             return  p + n; }); },
-    '*' : function(args) { return args[0] * args[1]; },
-    '-' : function(args) { return args[0] - args[1]; },
-    '/' : function(args) { return args[0] / args[1]; },
-    list: function(args) {
+    '+' : function() { var args = [].slice.call(arguments);
+                       return args
+                       .reduce(function(p,n) {
+                         return  p + n; }); },
+    '*' : function(a,b) { return a*b; },
+    '-' : function(a,b) { return a-b; },
+    '/' : function(a,b) { return a/b; },
+    list: function() {
+      var args = [].slice.call(arguments);
       args.type = 'list';
       return args;
     },
-    "list?": function(args) {
-      return args[0] && args[0].type === 'list' ? true : false;
-    },
-    "empty?": function(args) {
-      return args[0].length  ? false : true;
-    },
-    "count": function(args) {
-      if (args[0] === null) return 0;
-      return args[0].length;
-    },
-    "=": function(args) {
+    "list?": function(l) { return l && l.type === 'list' ? true : false; },
+    "empty?": function(l) { return l.length  ? false : true; },
+    "count": function(l) { return l === null ? 0 : l.length; },
+    "=": function(a,b) {
       // log('=');
       // inspect(args);
-      if (args[0] !== null && args[1] !== null) {
-        var type1 = args[0].constructor.name;
-        var type2 = args[1].constructor.name;
+      if (a !== null && b !== null) {
+        var type1 = a.constructor.name;
+        var type2 = b.constructor.name;
         if  (type1 !== type2) return false;
         if (type1 ==='Array') {
-          if (args[0].length !== args[1].length) return false;
-          else return args[0].every(function(arg, i)  {
-            var arg2 = args[1][i];
-            return module.exports['=']([arg, arg2]);
+          if (a.length !== b.length) return false;
+          else return a.every(function(arg, i)  {
+            var arg2 = b[i];
+            return module.exports['='](arg, arg2);
           });
         }
         if (type1 === 'String') {
-          return args[0].type === args[1].type && args[0] + '' === args[1] + '';
+          return a.type === b.type && a + '' === b + '';
         }
       }
-      return args[0] === args[1]; //null, numbers, true and false
+      return a === b; //null, numbers, true and false
     },
-    ">": function(args) {
-      return args[0] > args[1];
-    },
-    ">=": function(args) {
-      return args[0] >= args[1];
-    },
-    "<": function(args) {
-      return args[0] < args[1];
-    },
-    "<=": function(args) {
-      return args[0] <= args[1];
-    },
+    ">": function(a,b) {return a > b;},
+    ">=": function(a,b) {return a >= b;},
+    "<": function(a,b) {return a < b;},
+    "<=": function(a,b) {return a <= b;},
 
-    "str": function(args) {
+    "str": function() {
+      var args = [].slice.call(arguments);
       var str = args.map(function(arg) {
         return (arg && arg.constructor.name === 'String') ? arg + '' : print(arg);
       }).join('');
@@ -521,8 +519,8 @@ MAL.core = (function(env) {
       return str;
     },
 
-
-    "pr-str": function(args) {
+    "pr-str": function() {
+      var args = [].slice.call(arguments);
       var str = args.map(function(arg) {
         return print(arg);
       }).join(' ');
@@ -534,8 +532,9 @@ MAL.core = (function(env) {
       return str;
     },
 
-    "println": function(args) {
+    "println": function() {
       // inspect(args);
+      var args = [].slice.call(arguments);
       var result = args.map(function(arg) {
         return print(arg, 'print readably');
       }).join(' ');
@@ -543,13 +542,25 @@ MAL.core = (function(env) {
       return null;
     },
 
-    "prn": function(args) {
+    "prn": function() {
+      var args = [].slice.call(arguments);
       var result = args.map(function(arg) {
         return print(arg);
       }).join(' ');
       console.log(result);
       // if (args.length) console.log('"' + str + '"');
       return null;
+    },
+
+    slurp: function(fileName) {
+      var str = fs.readFileSync(fileName + "", { encoding: 'utf8' });
+      str = new String(str);
+      str.type = 'string';
+      return str;
+    },
+
+    'read-string': function(str) {
+      return read(str);
     }
   };
 
@@ -558,7 +569,8 @@ MAL.core = (function(env) {
   return {
     inNode: inNode,
     util: inNode ? require('./util') : MAL.util,
-    reader_printer: inNode ? require('./reader_printer') : MAL.reader_printer
+    reader_printer: inNode ? require('./reader_printer') : MAL.reader_printer,
+    fs: inNode ? require('fs') : null
   };
 })()); 
 
@@ -582,6 +594,8 @@ MAL.EVAL = (function(env) {
   var bind = env.bind;
   
   return function EVAL(ast, env) {
+    // log(ast);
+    // log('-------');
     var count = 0;
     while (true && count++ < 100000) {
       if (ast === null) return null; //silly javascript, on object that's not an object..
@@ -597,12 +611,18 @@ MAL.EVAL = (function(env) {
             var result = fn(env, args);
             // log(result);
             if (result.fn) return result; //this is a lisp function
+            if (!result.tco) return result.ast;
             //Don't return anything, just loop till something does (tco)..
             ast = result.ast; env = result.env || env;
           } else {
             args = args.map(function(ast) { return EVAL(ast, env); });
+            // log(args);
             // log(typeof fn);
-            if (typeof fn === 'function') return fn(args); //javascript function
+            if (typeof fn === 'function') {
+              var r =  fn.apply(null, args); //javascript function
+              // inspect(r);
+              return r;
+            }
             ast = fn.ast;
             env = bind(fn.env, fn.params, args);
           }
@@ -639,26 +659,53 @@ if (typeof module !== 'undefined') { module.exports = MAL.EVAL; }
 
 
 //Test
-function test(str) {
+function test() {
+  var log = require('./util').log;
+  var inspect = require('./util').insp;
+
+  var env = require('./envUtils').bindEnv(require('./special'), require('./core'));
+
+  env.eval = function(ast) {
+    return MAL.EVAL(ast, env);
+  };
+
   var reader = require('./reader_printer');
   // var env = require('./core');
 
-    var env = require('./envUtils').bindEnv(require('./special'), require('./core'));
-  var log = require('./util').log;
-    var inspect = require('./util').insp;
-  log('-----------testing------------------');
-  var result = MAL.EVAL(reader.read(str), env);
-  log('Result: >>>>>>>>>>>>>>> ' + str);
+  function rep(str) {
+    log('-----------testing------------------');
+    var result = MAL.EVAL(reader.read(str), env);
+    log('Result of: ' + str);
 
-  inspect(result);
-  log(reader.print(result));
-  log('                                 <result end>');
+    // inspect(result);
+    log(reader.print(result));
+    log('                                 <result end>');
+  }
+  // rep('(if true false)');
+  // rep('(if true false false)');
+  // rep('(read-string "(1 2 (3 4) nil)")');
+  // rep("(def! load-file (fn* (f) (read-string (str \"(do \" (slurp f) \")\"))))");
+  // rep('(def! load-file (fn* (f) (str "(do " (slurp f) ")")))');
+  // rep("(def! load-file (fn* (f) (slurp f) ))");
+  rep("(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \")\")))))");
+  rep('(load-file "../tests/incB.mal")');
+  // rep('"bla"');
+  // rep('(inc5 4)');
+  // rep('(str "(do" )');
+  // rep('(def! ok (list + 2 2))');
+  // rep('ok');
+  // rep('(eval ok)');
 }
 
+// test();
 // test("(def! not (fn* (a) (if a false true)))");
 // test('(not false)');
 // test('( (fn* (& more) (count more)) 1 2 3)');
-// test('(= nil nil)');
+// test('(= (list 1 2) [1 2])');
+// test('(str "abc")');
+// test('(let* (a (list + 2 2)) a)');
+// tes
+
 // test('(list)');
 // test('(empty? (list 1))');
 // test('((fn* (a b) a) 1)');
@@ -849,47 +896,53 @@ MAL.special = (function(env) {
   function special(fn) {
     fn.special = true;
     return fn;
-    };
+  };
 
-    return {
-      "def!": special(function(env, args) {
-        return { ast: env[args[0].toString()] = EVAL(args[1], env) };
-      }),
-      "let*": special(function(env, args) {
-        var newEnv = Object.create(env);
-        var bindings = args[0];
-        while (bindings.length) {
-          //TODO: check for even, symbol/value pairs..
-          newEnv[bindings.shift().toString()] = EVAL(bindings.shift(), newEnv);
-        }
-        return { ast: args[1] || null, env: newEnv };
-      }),
-      "do": special(function(env, args) {
-        args.slice(0, args.length-1).forEach(function(ast) {
-          EVAL(ast, env);
-        });
-        var last = args.slice(args.length-1);
-          return { ast: last[0] || null};
-      }),
-      "if": special(function(env, args) {
-        var cond = EVAL(args[0], env);
-        if (cond !== null && cond !== false) return { ast: args[1] };
-        else return { ast: args[2] || null};
-      }),
-      "fn*": special(function(env, args) {
-        var params = args[0];
-        var body = args[1];
-        var fn = function(expressions) {
-          return EVAL(body, bind(env, params, expressions));
-        };
-        return {
-          ast: body,
-          env: env,
-          fn: fn,
-          params: params
-        };
-      })
-    };
+  function isNull(arg) {
+      return typeof arg !== 'undefined' ? arg : null;
+  }
+
+  return {
+    "def!": special(function(env, args) {
+      return { ast: env[args[0].toString()] = EVAL(args[1], env) };
+    }),
+    "let*": special(function(env, args) {
+      var newEnv = Object.create(env);
+      var bindings = args[0];
+      while (bindings.length) {
+        //TODO: check for even, symbol/value pairs..
+        newEnv[bindings.shift().toString()] = EVAL(bindings.shift(), newEnv);
+      }
+      var ast = typeof args[1] !== 'undefined' ? args[1] : null;
+      return { ast: ast, env: newEnv, tco: true };
+    }),
+    "do": special(function(env, args) {
+      args.slice(0, args.length-1).forEach(function(ast) {
+        EVAL(ast, env);
+      });
+      var last = args.slice(args.length-1)[0];
+      var ast = typeof last !== 'undefined' ? last : null;
+      return { ast: ast, tco: true };
+    }),
+    "if": special(function(env, args) {
+      var cond = EVAL(args[0], env);
+      if (cond !== null && cond !== false) return { ast: isNull(args[1]), tco: true };
+      else return { ast: isNull(args[2]), tco: true };
+    }),
+    "fn*": special(function(env, args) {
+      var params = args[0];
+      var body = args[1];
+      var fn = function(expressions) {
+        return EVAL(body, bind(env, params, expressions));
+      };
+      return {
+        ast: body,
+        env: env,
+        fn: fn,
+        params: params
+      };
+    })
+  };
 
 })((function() {
   var inNode = typeof module !== 'undefined';

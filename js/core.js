@@ -108,7 +108,7 @@ MAL.core = (function(env) {
     inNode: inNode,
     util: inNode ? require('./util') : MAL.util,
     reader_printer: inNode ? require('./reader_printer') : MAL.reader_printer,
-    fs: require('fs')
+    fs: inNode ? require('fs') : null
   };
 })()); 
 
