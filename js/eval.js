@@ -106,7 +106,7 @@ function test() {
   // rep('(quasiquote (1 (splice-unquote lst) 3))');
 
   rep('(def! a 1)');
-  rep('(quote (1 ~a 3))');
+  rep('(quasiquote (1 ~a 3))');
   // rep('(cons 1 [2 3])');
   // rep('(def! a [1 2])');
   // rep('(concat [1] a (list 4 5))');

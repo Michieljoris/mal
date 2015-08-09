@@ -76,29 +76,34 @@ MAL.special = (function(env) {
     }),
     "quasiquote": special(function(env, args) {
       var ast = args[0];
-      // console.log('ast=', ast);
-      if (!isPair(ast)) {
-        ast = [symbol('quote'), ast];
-      }
-      else if(isSymbol(ast[0], 'unquote')) ast = ast[1];
-      else if (isPair(ast[0]) && isSymbol(ast[0][0], 'splice-unquote')) {
-        ast = [symbol('concat'),
-               ast[0][1], 
-               list([symbol('quasiquote'),
-                     list(ast.slice(1))])
-              ];
+      if (isPair(ast)) {
+        if(isSymbol(ast[0], 'unquote')) {
+          ast = ast[1];
+        }
+        else if (isSymbol(ast[0][0], 'splice-unquote')) {
+          ast = list([symbol('concat'),
+                 ast[0][1], 
+                 list([symbol('quasiquote'),
+                       list(ast.slice(1))])
+                     ]);
+        }
+        else {
+          // console.log('consing', ast, ast[0], ast[1], ast[2]);
+          ast = list([symbol('cons'),
+                      list([symbol('quasiquote'), ast[0]]),
+                      list([symbol('quasiquote'),
+                            list(ast.slice(1))])
+                     ]);
+          // console.log(ast);
+        }
+
       }
       else {
-        // console.log('consing', ast, ast[0], ast[1], ast[2]);
-        ast = list([symbol('cons'),
-                    list([symbol('quasiquote'), ast[0]]),
-                    list([symbol('quasiquote'),
-                          list(ast.slice(1))])
-                   ]);
-        // console.log(ast);
+        ast = list([symbol('quote'), ast]);
       }
 
-      ast.type = 'list';
+
+
       return { ast: ast, tco: true };
     })
   };
