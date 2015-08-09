@@ -31,7 +31,22 @@ MAL.special = (function(env) {
     return arr;
   }
 
-  var functions =  {
+  function quasiquote(ast) {
+    if (isPair(ast)) {
+      if(isSymbol(ast[0], 'unquote')) return ast[1];
+      else if (isSymbol(ast[0][0], 'splice-unquote'))
+        return list([symbol('concat'),
+                     ast[0][1], 
+                     quasiquote(list(ast.slice(1)))
+                    ]);
+      else return list([symbol('cons'),
+                        quasiquote(ast[0]), quasiquote(list(ast.slice(1)))
+                       ]);
+    }
+    else return list([symbol('quote'), ast]);
+  }
+
+  return  {
     "def!": special(function(env, args) {
       return { ast: env[args[0].toString()] = EVAL(args[1], env) };
     }),
@@ -75,47 +90,9 @@ MAL.special = (function(env) {
       return { ast: args[0] };
     }),
     "quasiquote": special(function(env, args) {
-      var ast = args[0];
-      if (isPair(ast)) {
-        if(isSymbol(ast[0], 'unquote')) {
-          ast = ast[1];
-        }
-        else if (isSymbol(ast[0][0], 'splice-unquote')) {
-          ast = list([symbol('concat'),
-                 ast[0][1], 
-                 list([symbol('quasiquote'),
-                       list(ast.slice(1))])
-                     ]);
-        }
-        else {
-          // console.log('consing', ast, ast[0], ast[1], ast[2]);
-          ast = list([symbol('cons'),
-                      list([symbol('quasiquote'), ast[0]]),
-                      list([symbol('quasiquote'),
-                            list(ast.slice(1))])
-                     ]);
-          // console.log(ast);
-        }
-
-      }
-      else {
-        ast = list([symbol('quote'), ast]);
-      }
-
-
-
-      return { ast: ast, tco: true };
+      return { ast: quasiquote(args[0]), tco: true };
     })
   };
-  return functions;
-// if is_pair of ast is false: return a new list containing: a symbol named "quote" and ast.
-
-// else if the first element of ast is a symbol named "unquote": return the second element of ast.
-
-// if is_pair of first element of ast is true and the first element of first element of ast (ast[0][0]) is a symbol named "splice-unquote": return a new list containing: a symbol named "concat", the second element of first element of ast (ast[0][1]), and the result of calling quasiquote with the second through last element of ast.
-
-// otherwise: return a new list containing: a symbol named "cons", the result of calling quasiquote on first element of ast (ast[0]), and result of calling quasiquote with the second through last element of ast.
-
 })((function() {
   var inNode = typeof module !== 'undefined';
   return {
