@@ -56,7 +56,6 @@ MAL.core = (function(env) {
       str.type = 'string';
       return str;
     },
-
     "pr-str": function() {
       var args = [].slice.call(arguments);
       var str = args.map(function(arg) {
@@ -69,7 +68,6 @@ MAL.core = (function(env) {
       str.type = 'string';
       return str;
     },
-
     "println": function() {
       // inspect(args);
       var args = [].slice.call(arguments);
@@ -79,7 +77,6 @@ MAL.core = (function(env) {
       console.log(result);
       return null;
     },
-
     "prn": function() {
       var args = [].slice.call(arguments);
       var result = args.map(function(arg) {
@@ -89,24 +86,20 @@ MAL.core = (function(env) {
       // if (args.length) console.log('"' + str + '"');
       return null;
     },
-
     slurp: function(fileName) {
       var str = fs.readFileSync(fileName + "", { encoding: 'utf8' });
       str = new String(str);
       str.type = 'string';
       return str;
     },
-
     'read-string': function(str) {
       return read(str);
     },
-
     cons: function(exp, list) {
       var result = [exp].concat(list);
       result.type = 'list';
       return result;
     },
-
     concat: function() {
       var args = [].slice.call(arguments);
       var result = args.reduce(function(p, n) {
@@ -114,7 +107,21 @@ MAL.core = (function(env) {
       }, []);
       result.type = 'list';
       return result;
+    },
+    nth: function(seq, n) {
+      if (n < 0 || n >= seq.length) throw "index out of bounds for seq";
+      return seq[n];
+    },
+    first: function(seq) {
+      if (seq === null || !seq.length) return null;
+      return seq[0];
+    },
+    rest: function(seq) {
+      seq = seq.slice(1);
+      seq.type = 'list';
+      return seq;
     }
+    
   };
   return functions;
 

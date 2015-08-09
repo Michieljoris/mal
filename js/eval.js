@@ -3,8 +3,23 @@ MAL.EVAL = (function(env) {
   var log = env.util.log;
   var inspect = env.util.insp;
   var bind = env.bind;
+
+  function isMacroCall(env, ast) {
+    var fn;
+    return ast && ast.type === 'list' &&
+      ast[0] && ast[0].type === 'symbol' &&
+      (fn = env[ast[0].toString()]) && fn.isMacro && fn;
+  }
+
+  function macroExpand(env, ast) {
+    var macroFn;
+    while ((macroFn = isMacroCall(env, ast))) {
+      ast = EVAL(macroFn.body, bind(macroFn.env, macroFn.params, ast.slice(1)));
+    }
+    return ast;
+  }
   
-  return function EVAL(ast, env) {
+  function EVAL(ast, env) {
     // log(ast);
     // log('-------');
     var count = 0;
@@ -13,6 +28,8 @@ MAL.EVAL = (function(env) {
       if (ast.constructor.name === 'Array') {
         //lists -> apply
         if (ast.type === 'list') {
+          ast = macroExpand(env, ast);
+          if (!ast || ast.constructor.name !== 'Array' || ast.type !== 'list') return ast;
           // log(ast);
           var fn = EVAL(ast[0], env);
           // log(fn);
@@ -21,7 +38,7 @@ MAL.EVAL = (function(env) {
             //Do whatever you want with the unevaluated args
             var result = fn(env, args);
             // log(result);
-            if (result.fn) return result; //this is a lisp function
+            if (result.body) return result; //this is a lisp function
             if (!result.tco) return result.ast;
             //Don't return anything, just loop till something does (tco)..
             ast = result.ast; env = result.env || env;
@@ -34,7 +51,9 @@ MAL.EVAL = (function(env) {
               // inspect(r);
               return r;
             }
-            ast = fn.ast;
+            //Loop and eval the body of the mal fn with env set to the env the
+            //function was defined in and its params bind to the passed in args
+            ast = fn.body;
             env = bind(fn.env, fn.params, args);
           }
         }
@@ -56,6 +75,9 @@ MAL.EVAL = (function(env) {
     }
     //If nothing is returned, loop infinitely till something is..
   }
+
+  EVAL.macroExpand = macroExpand;
+  return EVAL;
 
 })((function() {
   var inNode = typeof module !== 'undefined';
@@ -92,6 +114,16 @@ function test() {
     log(reader.print(result));
     log('                                 <result end>');
   }
+  // rep('(+ 1 2)');
+  // rep('( (fn* (& more) (count more)) 1 2 3)');
+  rep('(rest [19 20 2])');
+
+// (rest [])
+// ;=>()
+// (rest [10])
+// ;=>()
+// (rest [10 11 12])
+// ;=>(11 12)
   // rep('(if true false)');
   // rep('(if true false false)');
   // rep('(read-string "(1 2 (3 4) nil)")');
@@ -105,8 +137,8 @@ function test() {
   // rep('(def! lst (quote (2 3)))');
   // rep('(quasiquote (1 (splice-unquote lst) 3))');
 
-  rep('(def! a 1)');
-  rep('(quasiquote (1 ~a 3))');
+  // rep('(def! a 1)');
+  // rep('(quasiquote (1 ~a 3))');
   // rep('(cons 1 [2 3])');
   // rep('(def! a [1 2])');
   // rep('(concat [1] a (list 4 5))');
@@ -118,13 +150,13 @@ function test() {
   // rep('(str "(do" )');
   // rep('(def! ok (list + 2 2))');
   // rep('ok');
+
   // rep('(eval ok)');
 }
 
-test();
+// test();
 // test("(def! not (fn* (a) (if a false true)))");
 // test('(not false)');
-// test('( (fn* (& more) (count more)) 1 2 3)');
 // test('(= (list 1 2) [1 2])');
 // test('(str "abc")');
 // test('(let* (a (list + 2 2)) a)');

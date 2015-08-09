@@ -8,7 +8,7 @@ MAL.special = (function(env) {
     return fn;
   };
 
-  function isNull(arg) {
+  function argOrNull(arg) {
       return typeof arg !== 'undefined' ? arg : null;
   }
 
@@ -50,6 +50,11 @@ MAL.special = (function(env) {
     "def!": special(function(env, args) {
       return { ast: env[args[0].toString()] = EVAL(args[1], env) };
     }),
+    "defmacro!": special(function(env, args) {
+      var macroFn = EVAL(args[1], env);
+      macroFn.isMacro = true;
+      return { ast: env[args[0].toString()] = macroFn };
+    }),
     "let*": special(function(env, args) {
       var newEnv = Object.create(env);
       var bindings = args[0];
@@ -70,20 +75,14 @@ MAL.special = (function(env) {
     }),
     "if": special(function(env, args) {
       var cond = EVAL(args[0], env);
-      if (cond !== null && cond !== false) return { ast: isNull(args[1]), tco: true };
-      else return { ast: isNull(args[2]), tco: true };
+      if (cond !== null && cond !== false) return { ast: argOrNull(args[1]), tco: true };
+      else return { ast: argOrNull(args[2]), tco: true };
     }),
     "fn*": special(function(env, args) {
-      var params = args[0];
-      var body = args[1];
-      var fn = function(expressions) {
-        return EVAL(body, bind(env, params, expressions));
-      };
       return {
-        ast: body,
-        env: env,
-        fn: fn,
-        params: params
+        body: args[1],
+        params: args[0],
+        env: env
       };
     }),
     "quote": special(function(env, args) {
@@ -91,6 +90,9 @@ MAL.special = (function(env) {
     }),
     "quasiquote": special(function(env, args) {
       return { ast: quasiquote(args[0]), tco: true };
+    }),
+    "macroexpand": special(function(env, args) {
+      return { ast: EVAL.macroExpand(env, args[0]) };
     })
   };
 })((function() {

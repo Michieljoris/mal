@@ -140,7 +140,7 @@ MAL.reader_printer = (function(env) {
   function printAst(ast, somePrintReadably) {
     if (ast) {
       if (typeof ast === 'object') {
-        if (ast.fn) return ast.fn;
+        if (ast.body) return '[Mal-Fn]';
         return print[ast.type](ast);
       }
       if (typeof ast === 'function') {
