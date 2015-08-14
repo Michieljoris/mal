@@ -58,10 +58,18 @@ MAL.special = (function(env) {
     "let*": special(function(env, args) {
       var newEnv = Object.create(env);
       var bindings = args[0];
-      while (bindings.length) {
-        //TODO: check for even, symbol/value pairs..
-        newEnv[bindings.shift().toString()] = EVAL(bindings.shift(), newEnv);
-      }
+      var key;
+      bindings.forEach(function(el) {
+        if (key) {
+          newEnv[key.toString()] = EVAL(el, newEnv);
+          key = null;
+        }
+        else {
+          key = el;
+          if (!key || key.type !== 'symbol') throw "key in let has to be a symbol";
+        }
+      });
+      if (key) throw "uneven number of elements in let*";
       var ast = typeof args[1] !== 'undefined' ? args[1] : null;
       return { ast: ast, env: newEnv, tco: true };
     }),

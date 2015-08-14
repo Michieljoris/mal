@@ -1,4 +1,8 @@
 if (typeof MAL === 'undefined') MAL = {};
+// var TESTING = true;
+var TESTING = false;
+var counter = 0;
+  var reader = require('./reader_printer');
 MAL.EVAL = (function(env) {
   var log = env.util.log;
   var inspect = env.util.insp;
@@ -12,18 +16,27 @@ MAL.EVAL = (function(env) {
   }
 
   function macroExpand(env, ast) {
+    // log('--------------------------------------------------------------------');
     var macroFn;
     while ((macroFn = isMacroCall(env, ast))) {
+      // inspect(macroFn.env);
       ast = EVAL(macroFn.body, bind(macroFn.env, macroFn.params, ast.slice(1)));
+
+    // log(reader.print(ast));
     }
     return ast;
   }
   
   function EVAL(ast, env) {
+    // log('EVAL CALLED');
+    // if (counter>1) return;;
+    // inspect(env);
     // log(ast);
     // log('-------');
     var count = 0;
     while (true && count++ < 100000) {
+    // log('AST');
+    // log(reader.print(ast));
       if (ast === null) return null; //silly javascript, on object that's not an object..
       if (ast.constructor.name === 'Array') {
         //lists -> apply
@@ -54,7 +67,7 @@ MAL.EVAL = (function(env) {
             //Loop and eval the body of the mal fn with env set to the env the
             //function was defined in and its params bind to the passed in args
             ast = fn.body;
-            env = bind(fn.env, fn.params, args);
+            env = bind(Object.create(fn.env), fn.params, args);
           }
         }
         //Vectors and hashmaps -> evaluate elements
@@ -110,20 +123,71 @@ function test() {
     var result = MAL.EVAL(reader.read(str), env);
     log('Result of: ' + str);
 
-    inspect(result);
+    // inspect(result);
     log(reader.print(result));
     log('                                 <result end>');
   }
   // rep('(+ 1 2)');
   // rep('( (fn* (& more) (count more)) 1 2 3)');
-  rep('(rest [19 20 2])');
 
-// (rest [])
-// ;=>()
-// (rest [10])
-// ;=>()
-// (rest [10 11 12])
-// ;=>(11 12)
+
+  var threadMacro = 
+    [
+      " (defmacro! -> ",
+      "   (fn* (x & xs) ",
+      "    (if (empty? xs) ",
+      "    x ",
+      "    (let* (form (first xs) ",
+      "           more (rest xs)) ",
+      "      (if (empty? more) ",
+      "        (if (list? form) ",
+      "          `(~(first form) ~x ~@(rest form)) ",
+      "          (list form x)) ",
+      "        `(-> (-> ~x ~form) ~@more)))))) ",
+    ].join('\n');
+
+  // rep('(quasiquote (+ (splice-unquote  (list 2 3 4))))');
+  // rep('(macroexpand (-> 7))');
+
+  // rep('(macroexpand (-> (list 7 8 9) first))');
+  // rep('(def! f (fn* (b) (let* (a b) a)))');
+  // rep('(f 4)');
+  // rep('(f 4)');
+
+  rep(threadMacro);
+  rep('(-> (list 7 8 9) first)');
+  rep('(-> (list 7 8 9) first)');
+
+  // rep(threadMacro);
+
+  // rep('(macroexpand (-> (list 7 8 9) (first)))');
+
+  // rep('(macroexpand (-> (list 7 8 9) rest rest))');
+  // rep('(macroexpand (-> (list 7 8 9) rest rest))');
+
+  rep('(macroexpand (-> 1 (+ 2) (+ 3)))');
+
+  rep('(-> (list 7 8 9) rest (rest) first (+ 7))');
+
+// (-> 7)
+// ;=>7
+// (-> (list 7 8 9) first)
+// ;=>7
+// (-> (list 7 8 9) (first))
+// ;=>7
+// (-> (list 7 8 9) first (+ 7))
+// ;=>14
+// (-> (list 7 8 9) rest (rest) first (+ 7))
+// ;=>16
+
+  // rep('(rest [19 20 2])');
+
+  // (rest [])
+  // ;=>()
+  // (rest [10])
+  // ;=>()
+  // (rest [10 11 12])
+  // ;=>(11 12)
   // rep('(if true false)');
   // rep('(if true false false)');
   // rep('(read-string "(1 2 (3 4) nil)")');
@@ -154,7 +218,7 @@ function test() {
   // rep('(eval ok)');
 }
 
-// test();
+if (TESTING) test();
 // test("(def! not (fn* (a) (if a false true)))");
 // test('(not false)');
 // test('(= (list 1 2) [1 2])');

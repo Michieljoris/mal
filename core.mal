@@ -58,6 +58,17 @@
                 (throw "cond requires an even number of forms"))
             (cons 'cond (rest (rest clauses)))))))
 
+
+(if (empty? xs)
+  x
+  (let* (form (first xs)
+              more (rest xs))
+        (if (empty? more)
+          (if (list? form)
+            (quasiquote ((unquote (first form)) (unquote x) (splice-unquote (rest form))))
+            (list form x))
+          (quasiquote (-> (-> (unquote x) (unquote form)) (splice-unquote more))))))
+
 (defmacro! ->
   (fn* (x & xs)
     (if (empty? xs)
